@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="img/covid.png" type="image/x-icon" />
+    <title>Top 10 Covid Countries</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css"
+    />
+  </head>
+  <body>
+    <br /><br />
+    <div class="container">
+      <div class="card-deck mb-3 text-left">
+        <div class="card mb-4 box-shadow">
+          <div class="card-header container-fluid">
+            <div class="row">
+              <div class="col-md-8">
+                <h4 class="my-0 font-weight-normal">Top 10 Covid Countries</h4>
+              </div>
+              <div class="col-md-4">
+                <span><b>Last Updated </b></span>
+                <!-- This span will receive the last update date from api -->
+                <span id="last-updated"></span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row justify-content-left">
+              <p>List of top 10 country using total confirmed cases:</p>
+              <!-- This div is for the list of countris -->
+              <div id="top-10-list"></div>
+              <!-- This div is for the chart design -->
+              <div id="barChartContent" class="card-body">
+                <!-- Load bar chart from AJAX -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+  <!-- This javascript file is for the Object created -->
+  <script src="js/index.js"></script>
+  <script>
+    // The main function of jquery
+    $(function () {
+      // Get the html div
+      var result = $("#top-10-list");
+      // Add the gif loading image
+      result.html("<img src='img/loading.gif' />");
+      // Settings for the api call
+      var settings = {
+        async: true,
+        crossDomain: false,
+        url: "https://api.covid19api.com/summary",
+        method: "GET",
+      };
+      // AJAX call with settings with response, the response will have all countries informations
+      $.ajax(settings).done(function (response) {
+        // Get the last update date and add into the html spa 
+        $("#last-updated").html(response.Date);
+        // The function that will paint all top 10 countries, the result is the div to paint into in html and responses has the country list
+        getTop10(result, response.Countries);
+      });
+    });
+    // The function that will paint all top 10 countries, the result is the div to paint into in html and responses has the country list
+    function getTop10(result, countries) {
+      // html is the content that will append countries names, country array is for store all countries and top10TotalConfirmed will be the array for store the top 10 total cases
+      var html = "",
+        countryArray = new Array(),
+        top10TotalConfirmed;
+      // This foreach will iterate by each countries from i = 0 to total and cast in item 
+      $.each(countries, (i, item) => {
+        // Create new country object and add in position i
+        countryArray[i] = new Country(
+          i,
+          item.Country,
+          item.NewConfirmed,
+          item.TotalConfirmed,
+          item.NewDeaths,
+          item.TotalDeaths,
+          item.NewRecovered,
+          item.TotalRecovered
+        );
+      });
+      // This operation will sort all countries by Total Confirmed cases and slices in 10
+      top10TotalConfirmed = countryArray
+        .sort((a, b) => b.TotalConfirmed - a.TotalConfirmed)
+        .slice(0, 10);
+      // This foreach will iterate by top 10 total countries and append it into the html variable
+      $.each(top10TotalConfirmed, function (i, country) {
+        // Each country will be inside html <a> element with bootstrap style btn-info
+        html +=
+          "<a href='javascript:drawBarChart(" +
+          JSON.stringify(country) +
+          ")' class='btn btn-info' style='margin: 5px;'><span>" +
+          (i + 1) +
+          " " +
+          country.Name +
+          "</span></a>";
+      });
+      // Save the html content into the html div
+      result.html(html);
+    }
+    // This function will allow the user client in each countries and design the chart
+    function drawBarChart(country) {
+      // Create new canvas to draw the chart with height 150px
+      $("#barChartContent").html(
+        '<canvas id="barChart" height="150"></canvas>'
+      );
+      // Get the canvas to draw the chart
+      var chBar = document.getElementById("barChart"),
+        labels = [
+          "New Confirmed: " + country.NewConfirmed,
+          "Total Confirmed: " + country.TotalConfirmed,
+          "New Deaths: " + country.NewDeaths,
+          "Total Deaths: " + country.TotalDeaths,
+          "New Recovered: " + country.NewRecovered,
+          "Total Recovered: " + country.TotalRecovered,
+        ],
+        scores = [
+          country.NewConfirmed,
+          country.TotalConfirmed,
+          country.NewDeaths,
+          country.TotalDeaths,
+          country.NewRecovered,
+          country.TotalRecovered,
+        ],
+        colors = [
+          "blue",
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "cyan",
+          "magenta",
+        ];
+      var chartData = {
+        labels: labels,
+        datasets: [
+          {
+            data: scores,
+            backgroundColor: colors,
+          },
+        ],
+      };
+      if (chBar) {
+        new Chart(chBar, {
+          type: "bar",
+          data: chartData,
+          options: {
+            scales: {
+              xAxes: [
+                {
+                  barPercentage: 0.4,
+                  categoryPercentage: 0.7,
+                },
+              ],
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true,
+                  },
+                },
+              ],
+            },
+            responsive: true,
+            legend: {
+              display: false,
+            },
+            title: {
+              display: true,
+              text: country.Name + " Covid cases",
+            },
+          },
+        });
+      }
+    }
+  </script>
+</html>
